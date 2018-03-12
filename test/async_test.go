@@ -1,8 +1,6 @@
 package test
 
 import (
-	"context"
-	"fmt"
 	"sync"
 	"testing"
 
@@ -69,31 +67,4 @@ func Test_RunForever_Successful(t *testing.T) {
 
 	// assert
 	assert.Equal(t, 12, count)
-}
-
-func Test_Async(t *testing.T) {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	isDone := false
-
-	n := 0
-	go func() {
-		for {
-			if isDone {
-				break
-			}
-
-			n++
-			fmt.Printf("%v\n", n)
-
-			if n == 10 {
-				fmt.Println("cancelling...")
-				cancel()
-			}
-		}
-	}()
-
-	done := ctx.Done()
-	<-done
-	fmt.Println("after done")
 }
