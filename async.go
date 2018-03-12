@@ -4,22 +4,27 @@ import (
 	"sync"
 )
 
-type Task func()
+type Task func() error
 
-func Run(tasks ...Task) {
+func Run(tasks ...Task) error {
 	count := len(tasks)
 
-	var wg sync.WaitGroup
-	wg.Add(count)
+	errchan := make(chan error, count)
 
 	for t := range tasks {
 		go func(i int) {
-			defer wg.Done()
-			tasks[i]()
+			errchan <- tasks[i]()
 		}(t)
 	}
 
-	wg.Wait()
+	for i := 0; i < count; i++ {
+		err := <-errchan
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func RunForever(concurrent int, task Task) {
