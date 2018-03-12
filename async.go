@@ -22,38 +22,33 @@ func Run(tasks ...Task) {
 	wg.Wait()
 }
 
-func RunForever(tasks ...Task) {
-	// ctx := context.Background()
-	// ctx, cancel := context.WithCancel(ctx)
-
-	count := len(tasks)
-
+func RunForever(concurrent int, task Task) {
 	var wg sync.WaitGroup
-	wg.Add(count)
+	wg.Add(concurrent)
 
-	for t := range tasks {
-		go func(i int) {
+	for c := 0; c < concurrent; c++ {
+		go func() {
 			defer wg.Done()
 			for {
-				tasks[i]()
+				task()
 			}
-		}(t)
+		}()
 	}
 
 	wg.Wait()
 }
 
-func RunLimited(count int, tasks ...Task) {
+func RunLimited(concurrent int, count int, task Task) {
 	var wg sync.WaitGroup
-	wg.Add(count)
+	wg.Add(concurrent)
 
-	for t := range tasks {
-		go func(i int) {
-			for {
-				tasks[i]()
-				wg.Done()
+	for c := 0; c < concurrent; c++ {
+		go func() {
+			defer wg.Done()
+			for i := 0; i < count; i++ {
+				task()
 			}
-		}(t)
+		}()
 	}
 
 	wg.Wait()
