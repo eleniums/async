@@ -1,9 +1,5 @@
 package async
 
-import (
-	"sync"
-)
-
 // Task is a function that can be run concurrently.
 type Task func() error
 
@@ -53,18 +49,25 @@ func RunForever(concurrent int, task Task) error {
 }
 
 // RunLimited will execute the given task a set number of times on a set number of goroutines and stop if a task returns an error. Total times the task will be executed is equal to concurrent multiplied by count.
-func RunLimited(concurrent int, count int, task Task) {
-	var wg sync.WaitGroup
-	wg.Add(concurrent)
+func RunLimited(concurrent int, count int, task Task) error {
+	errchan := make(chan error, concurrent)
 
+	// run tasks
 	for c := 0; c < concurrent; c++ {
 		go func() {
-			defer wg.Done()
 			for i := 0; i < count; i++ {
-				task()
+				errchan <- task()
 			}
 		}()
 	}
 
-	wg.Wait()
+	// check for errors
+	for i := 0; i < concurrent*count; i++ {
+		err := <-errchan
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

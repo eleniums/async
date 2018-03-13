@@ -77,10 +77,33 @@ func Test_RunLimited_Successful(t *testing.T) {
 	}
 
 	// act
-	async.RunLimited(3, 4, task)
+	err := async.RunLimited(3, 4, task)
 
 	// assert
+	assert.NoError(t, err)
 	assert.Equal(t, 12, count)
+}
+
+func Test_RunLimited_Error(t *testing.T) {
+	// arrange
+	count := 0
+	task := func() error {
+		if count < 8 {
+			count++
+			if count == 8 {
+				return errors.New("error")
+			}
+		}
+
+		return nil
+	}
+
+	// act
+	err := async.RunLimited(3, 4, task)
+
+	// assert
+	assert.Error(t, err)
+	assert.Equal(t, 8, count)
 }
 
 func Test_RunForever_Successful(t *testing.T) {
