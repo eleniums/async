@@ -30,6 +30,6 @@ Run the tasks concurrently:
 ```go
 err := async.Run(foo, bar)
 if err != nil {
-	log.Fatalf("task returned an error: %v", err)
+    log.Fatalf("task returned an error: %v", err)
 }
 ```
