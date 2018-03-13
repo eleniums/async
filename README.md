@@ -17,12 +17,12 @@ Create some tasks to run:
 ```go
 foo := func() error {
     // do something
-	return nil
+    return nil
 }
 
 bar := func() error {
     // do something else
-	return nil
+    return nil
 }
 ```
 
