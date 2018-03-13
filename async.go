@@ -4,20 +4,23 @@ import (
 	"sync"
 )
 
+// Task is a function that can be run concurrently.
 type Task func() error
 
+// Run will execute the given tasks concurrently and stop if a task returns an error.
 func Run(tasks ...Task) error {
-	count := len(tasks)
+	concurrent := len(tasks)
+	errchan := make(chan error, concurrent)
 
-	errchan := make(chan error, count)
-
+	// run tasks
 	for t := range tasks {
 		go func(i int) {
 			errchan <- tasks[i]()
 		}(t)
 	}
 
-	for i := 0; i < count; i++ {
+	// check for errors
+	for i := 0; i < concurrent; i++ {
 		err := <-errchan
 		if err != nil {
 			return err
@@ -27,22 +30,29 @@ func Run(tasks ...Task) error {
 	return nil
 }
 
-func RunForever(concurrent int, task Task) {
-	var wg sync.WaitGroup
-	wg.Add(concurrent)
+// RunForever will execute the given task repeatedly on a set number of goroutines and stop if a task returns an error.
+func RunForever(concurrent int, task Task) error {
+	errchan := make(chan error, concurrent)
 
+	// run tasks
 	for c := 0; c < concurrent; c++ {
 		go func() {
-			defer wg.Done()
 			for {
-				task()
+				errchan <- task()
 			}
 		}()
 	}
 
-	wg.Wait()
+	// check for errors
+	for {
+		err := <-errchan
+		if err != nil {
+			return err
+		}
+	}
 }
 
+// RunLimited will execute the given task a set number of times on a set number of goroutines and stop if a task returns an error. Total times the task will be executed is equal to concurrent multiplied by count.
 func RunLimited(concurrent int, count int, task Task) {
 	var wg sync.WaitGroup
 	wg.Add(concurrent)
