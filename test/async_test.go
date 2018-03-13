@@ -104,3 +104,25 @@ func Test_RunForever_Successful(t *testing.T) {
 	// assert
 	assert.Equal(t, 12, count)
 }
+
+func Test_RunForever_Error(t *testing.T) {
+	// arrange
+	count := 0
+	task := func() error {
+		if count < 12 {
+			count++
+			if count == 12 {
+				return errors.New("error")
+			}
+		}
+
+		return nil
+	}
+
+	// act
+	err := async.RunForever(1, task)
+
+	// assert
+	assert.Error(t, err)
+	assert.Equal(t, 12, count)
+}
