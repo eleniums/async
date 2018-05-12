@@ -16,4 +16,4 @@ install:
   - dep ensure -v
 
 script:
-  - go test -v ./test
+  - go test -v -cover ./test

@@ -1,11 +1,9 @@
-package test
+package async
 
 import (
 	"errors"
 	"sync"
 	"testing"
-
-	"github.com/eleniums/async"
 
 	assert "github.com/stretchr/testify/require"
 )
@@ -31,7 +29,7 @@ func Test_Run_Successful(t *testing.T) {
 	}
 
 	// act
-	err := async.Run(task1, task2, task3)
+	err := Run(task1, task2, task3)
 
 	// assert
 	assert.NoError(t, err)
@@ -61,7 +59,7 @@ func Test_Run_Error(t *testing.T) {
 	}
 
 	// act
-	err := async.Run(task1, task2, task3)
+	err := Run(task1, task2, task3)
 
 	// assert
 	assert.Error(t, err)
@@ -77,7 +75,7 @@ func Test_RunLimited_Successful(t *testing.T) {
 	}
 
 	// act
-	err := async.RunLimited(3, 4, task)
+	err := RunLimited(3, 4, task)
 
 	// assert
 	assert.NoError(t, err)
@@ -99,7 +97,7 @@ func Test_RunLimited_Error(t *testing.T) {
 	}
 
 	// act
-	err := async.RunLimited(3, 4, task)
+	err := RunLimited(3, 4, task)
 
 	// assert
 	assert.Error(t, err)
@@ -121,7 +119,7 @@ func Test_RunForever_Successful(t *testing.T) {
 	}
 
 	// act
-	go async.RunForever(1, task)
+	go RunForever(1, task)
 	wg.Wait()
 
 	// assert
@@ -143,7 +141,7 @@ func Test_RunForever_Error(t *testing.T) {
 	}
 
 	// act
-	err := async.RunForever(1, task)
+	err := RunForever(1, task)
 
 	// assert
 	assert.Error(t, err)
