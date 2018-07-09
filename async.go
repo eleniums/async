@@ -6,7 +6,7 @@ type Task func() error
 // Run will execute the given tasks concurrently and stop if a task returns an error.
 func Run(tasks ...Task) error {
 	concurrent := len(tasks)
-	errchan := make(chan error, concurrent)
+	errchan := make(chan error)
 
 	// run tasks
 	for t := range tasks {
@@ -28,7 +28,7 @@ func Run(tasks ...Task) error {
 
 // RunForever will execute the given task repeatedly on a set number of goroutines and stop if a task returns an error.
 func RunForever(concurrent int, task Task) error {
-	errchan := make(chan error, concurrent)
+	errchan := make(chan error)
 
 	// run tasks
 	for c := 0; c < concurrent; c++ {
@@ -50,7 +50,7 @@ func RunForever(concurrent int, task Task) error {
 
 // RunLimited will execute the given task a set number of times on a set number of goroutines and stop if a task returns an error. Total times the task will be executed is equal to concurrent multiplied by count.
 func RunLimited(concurrent int, count int, task Task) error {
-	errchan := make(chan error, concurrent)
+	errchan := make(chan error)
 
 	// run tasks
 	for c := 0; c < concurrent; c++ {
