@@ -136,7 +136,7 @@ func Test_TaskPool_Wait_Success(t *testing.T) {
 	assert.NoError(t, err)
 
 	// act
-	pool.Wait()
+	err = pool.Wait()
 
 	// assert
 	assert.NoError(t, err)
