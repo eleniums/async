@@ -7,7 +7,55 @@ import (
 	assert "github.com/stretchr/testify/require"
 )
 
-func Test_TaskPool_Run_Successful(t *testing.T) {
+func Test_TaskPool_NewTaskPool_Max1_Success(t *testing.T) {
+	// act
+	pool := NewTaskPool(1)
+
+	// assert
+	assert.Equal(t, 1, pool.max)
+	assert.NotNil(t, pool.sem)
+}
+
+func Test_TaskPool_NewTaskPool_Max2_Success(t *testing.T) {
+	// act
+	pool := NewTaskPool(2)
+
+	// assert
+	assert.Equal(t, 2, pool.max)
+	assert.NotNil(t, pool.sem)
+}
+
+func Test_TaskPool_NewTaskPool_Max0_Failure(t *testing.T) {
+	var pool *TaskPool
+
+	defer func() {
+		recover()
+		assert.Nil(t, pool)
+	}()
+
+	// act
+	pool = NewTaskPool(0)
+
+	// assert
+	assert.True(t, false)
+}
+
+func Test_TaskPool_NewTaskPool_MaxNegative_Failure(t *testing.T) {
+	var pool *TaskPool
+
+	defer func() {
+		recover()
+		assert.Nil(t, pool)
+	}()
+
+	// act
+	pool = NewTaskPool(-1)
+
+	// assert
+	assert.True(t, false)
+}
+
+func Test_TaskPool_Run_Success(t *testing.T) {
 	// arrange
 	startedTask1 := false
 	finishedTask1 := false

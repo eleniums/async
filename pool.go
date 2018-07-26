@@ -14,6 +14,10 @@ type TaskPool struct {
 
 // NewTaskPool creates a new task pool that will limit concurrent tasks to max.
 func NewTaskPool(max int) *TaskPool {
+	if max <= 0 {
+		panic("max must be a value of >= 1")
+	}
+
 	return &TaskPool{
 		max: max,
 		sem: semaphore.NewWeighted(int64(max)),
