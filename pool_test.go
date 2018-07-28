@@ -76,11 +76,15 @@ func Test_TaskPool_Run_Success(t *testing.T) {
 		return nil
 	}
 
+	started := make(chan bool, 1)
+	defer close(started)
+
 	startedTask3 := false
 	finishedTask3 := false
 	task3 := func() error {
 		defer func() { finishedTask3 = true }()
 		startedTask3 = true
+		started <- true
 		time.Sleep(time.Millisecond * 200)
 		return nil
 	}
@@ -98,6 +102,8 @@ func Test_TaskPool_Run_Success(t *testing.T) {
 	assert.NotNil(t, errc)
 
 	// assert
+	<-started
+
 	assert.True(t, startedTask1)
 	assert.True(t, finishedTask1)
 
