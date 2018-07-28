@@ -25,18 +25,25 @@ func NewTaskPool(max int) *TaskPool {
 }
 
 // Run will block until there is available capacity and then execute the given task.
-func (p *TaskPool) Run(task Task) error {
+func (p *TaskPool) Run(task Task) <-chan error {
+	errc := make(chan error, 1)
+
 	err := p.sem.Acquire(context.Background(), 1)
 	if err != nil {
-		return err
+		errc <- err
+		close(errc)
+		return errc
 	}
 
 	go func() {
 		defer p.sem.Release(1)
-		task()
+		defer close(errc)
+
+		err = task()
+		errc <- err
 	}()
 
-	return nil
+	return errc
 }
 
 // Wait until all tasks have finished processing.

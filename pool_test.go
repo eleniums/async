@@ -1,6 +1,7 @@
 package async
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -87,14 +88,14 @@ func Test_TaskPool_Run_Success(t *testing.T) {
 	pool := NewTaskPool(2)
 
 	// act
-	err := pool.Run(task1)
-	assert.NoError(t, err)
+	errc := pool.Run(task1)
+	assert.NotNil(t, errc)
 
-	err = pool.Run(task2)
-	assert.NoError(t, err)
+	errc = pool.Run(task2)
+	assert.NotNil(t, errc)
 
-	err = pool.Run(task3)
-	assert.NoError(t, err)
+	errc = pool.Run(task3)
+	assert.NotNil(t, errc)
 
 	// assert
 	assert.True(t, startedTask1)
@@ -105,6 +106,47 @@ func Test_TaskPool_Run_Success(t *testing.T) {
 
 	assert.True(t, startedTask3)
 	assert.False(t, finishedTask3)
+}
+
+func Test_TaskPool_Run_Error(t *testing.T) {
+	// arrange
+	startedTask1 := false
+	finishedTask1 := false
+	task1 := func() error {
+		defer func() { finishedTask1 = true }()
+		startedTask1 = true
+		time.Sleep(time.Millisecond * 100)
+		return nil
+	}
+
+	startedTask2 := false
+	finishedTask2 := false
+	task2 := func() error {
+		defer func() { finishedTask2 = true }()
+		startedTask2 = true
+		time.Sleep(time.Millisecond * 200)
+		return errors.New("task 2 encountered an error")
+	}
+
+	pool := NewTaskPool(2)
+
+	// act
+	errc1 := pool.Run(task1)
+	assert.NotNil(t, errc1)
+
+	errc2 := pool.Run(task2)
+	assert.NotNil(t, errc2)
+
+	// assert
+	err := <-errc1
+	assert.NoError(t, err)
+	assert.True(t, startedTask1)
+	assert.True(t, finishedTask1)
+
+	err = <-errc2
+	assert.Error(t, err)
+	assert.True(t, startedTask2)
+	assert.True(t, finishedTask2)
 }
 
 func Test_TaskPool_Wait_Success(t *testing.T) {
@@ -129,14 +171,14 @@ func Test_TaskPool_Wait_Success(t *testing.T) {
 
 	pool := NewTaskPool(2)
 
-	err := pool.Run(task1)
-	assert.NoError(t, err)
+	errc := pool.Run(task1)
+	assert.NotNil(t, errc)
 
-	err = pool.Run(task2)
-	assert.NoError(t, err)
+	errc = pool.Run(task2)
+	assert.NotNil(t, errc)
 
 	// act
-	err = pool.Wait()
+	err := pool.Wait()
 
 	// assert
 	assert.NoError(t, err)
