@@ -1,6 +1,7 @@
 package async
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -92,13 +93,13 @@ func Test_TaskPool_Run_Success(t *testing.T) {
 	pool := NewTaskPool(2)
 
 	// act
-	errc := pool.Run(task1)
+	errc := pool.Run(context.Background(), task1)
 	assert.NotNil(t, errc)
 
-	errc = pool.Run(task2)
+	errc = pool.Run(context.Background(), task2)
 	assert.NotNil(t, errc)
 
-	errc = pool.Run(task3)
+	errc = pool.Run(context.Background(), task3)
 	assert.NotNil(t, errc)
 
 	// assert
@@ -137,10 +138,10 @@ func Test_TaskPool_Run_Error(t *testing.T) {
 	pool := NewTaskPool(2)
 
 	// act
-	errc1 := pool.Run(task1)
+	errc1 := pool.Run(context.Background(), task1)
 	assert.NotNil(t, errc1)
 
-	errc2 := pool.Run(task2)
+	errc2 := pool.Run(context.Background(), task2)
 	assert.NotNil(t, errc2)
 
 	// assert
@@ -153,6 +154,55 @@ func Test_TaskPool_Run_Error(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, startedTask2)
 	assert.True(t, finishedTask2)
+}
+
+func Test_TaskPool_Run_Cancel(t *testing.T) {
+	// arrange
+	started := make(chan bool, 1)
+	defer close(started)
+
+	startedTask1 := false
+	finishedTask1 := false
+	task1 := func() error {
+		defer func() { finishedTask1 = true }()
+		startedTask1 = true
+		started <- true
+		time.Sleep(time.Millisecond * 200)
+		return nil
+	}
+
+	startedTask2 := false
+	finishedTask2 := false
+	task2 := func() error {
+		defer func() { finishedTask2 = true }()
+		startedTask2 = true
+		time.Sleep(time.Millisecond * 200)
+		return nil
+	}
+
+	pool := NewTaskPool(1)
+
+	// act
+	errc := pool.Run(context.Background(), task1)
+	assert.NotNil(t, errc)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		errc := pool.Run(ctx, task2)
+		assert.NotNil(t, errc)
+		err := <-errc
+		assert.Error(t, err)
+	}()
+	cancel()
+
+	// assert
+	<-started
+
+	assert.True(t, startedTask1)
+	assert.False(t, finishedTask1)
+
+	assert.False(t, startedTask2)
+	assert.False(t, finishedTask2)
 }
 
 func Test_TaskPool_Wait_Success(t *testing.T) {
@@ -177,10 +227,10 @@ func Test_TaskPool_Wait_Success(t *testing.T) {
 
 	pool := NewTaskPool(2)
 
-	errc := pool.Run(task1)
+	errc := pool.Run(context.Background(), task1)
 	assert.NotNil(t, errc)
 
-	errc = pool.Run(task2)
+	errc = pool.Run(context.Background(), task2)
 	assert.NotNil(t, errc)
 
 	// act
