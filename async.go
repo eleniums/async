@@ -7,7 +7,7 @@ import (
 // Task is a function that can be run concurrently.
 type Task func() error
 
-// Run will execute the given tasks concurrently and stop if a task returns an error.
+// Run will execute the given tasks concurrently and return any errors.
 func Run(tasks ...Task) <-chan error {
 	errc := make(chan error)
 
