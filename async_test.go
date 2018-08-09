@@ -4,66 +4,73 @@ import (
 	"errors"
 	"sync"
 	"testing"
+	"time"
 
 	assert "github.com/stretchr/testify/require"
 )
 
 func Test_Run_Success(t *testing.T) {
 	// arrange
-	count1 := 0
+	task1Completed := false
 	task1 := func() error {
-		count1++
+		defer func() { task1Completed = true }()
 		return nil
 	}
 
-	count2 := 0
+	task2Completed := false
 	task2 := func() error {
-		count2++
+		defer func() { task2Completed = true }()
 		return nil
 	}
 
-	count3 := 0
+	task3Completed := false
 	task3 := func() error {
-		count3++
+		defer func() { task3Completed = true }()
 		return nil
 	}
 
 	// act
-	err := Run(task1, task2, task3)
+	errc := Run(task1, task2, task3)
+	err := Wait(errc)
 
 	// assert
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count1)
-	assert.Equal(t, 1, count2)
-	assert.Equal(t, 1, count3)
+	assert.True(t, task1Completed)
+	assert.True(t, task2Completed)
+	assert.True(t, task3Completed)
 }
 
 func Test_Run_Error(t *testing.T) {
 	// arrange
-	count1 := 0
+	task1Completed := false
 	task1 := func() error {
-		count1++
+		defer func() { task1Completed = true }()
 		return nil
 	}
 
-	count2 := 0
+	task2Completed := false
 	task2 := func() error {
-		count2++
+		defer func() { task2Completed = true }()
+		time.Sleep(time.Millisecond * 200)
 		return nil
 	}
 
-	count3 := 0
+	task3Completed := false
 	task3 := func() error {
-		count3++
-		return errors.New("task3")
+		defer func() { task3Completed = true }()
+		time.Sleep(time.Millisecond * 100)
+		return errors.New("task3 error")
 	}
 
 	// act
-	err := Run(task1, task2, task3)
+	errc := Run(task1, task2, task3)
+	err := Wait(errc)
 
 	// assert
 	assert.Error(t, err)
-	assert.Equal(t, 1, count3)
+	assert.True(t, task1Completed)
+	assert.False(t, task2Completed)
+	assert.True(t, task3Completed)
 }
 
 func Test_RunLimited_Success(t *testing.T) {

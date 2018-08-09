@@ -75,3 +75,14 @@ func RunLimited(concurrent int, count int, task Task) error {
 
 	return nil
 }
+
+// Wait until channel is closed or error is received.
+func Wait(errc <-chan error) error {
+	for err := range errc {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
