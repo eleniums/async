@@ -8,7 +8,7 @@ import (
 	assert "github.com/stretchr/testify/require"
 )
 
-func Test_Run_Successful(t *testing.T) {
+func Test_Run_Success(t *testing.T) {
 	// arrange
 	count1 := 0
 	task1 := func() error {
@@ -66,7 +66,7 @@ func Test_Run_Error(t *testing.T) {
 	assert.Equal(t, 1, count3)
 }
 
-func Test_RunLimited_Successful(t *testing.T) {
+func Test_RunLimited_Success(t *testing.T) {
 	// arrange
 	count := 0
 	task := func() error {
@@ -104,7 +104,7 @@ func Test_RunLimited_Error(t *testing.T) {
 	assert.Equal(t, 8, count)
 }
 
-func Test_RunForever_Successful(t *testing.T) {
+func Test_RunForever_Success(t *testing.T) {
 	// arrange
 	var wg sync.WaitGroup
 	wg.Add(12)
