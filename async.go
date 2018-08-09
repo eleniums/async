@@ -1,6 +1,7 @@
 package async
 
 import (
+	"context"
 	"sync"
 )
 
@@ -17,7 +18,10 @@ func Run(tasks ...Task) <-chan error {
 		wg.Add(1)
 		go func(task Task) {
 			defer wg.Done()
-			errc <- task()
+			err := task()
+			if err != nil {
+				errc <- err
+			}
 		}(v)
 	}
 
@@ -30,26 +34,39 @@ func Run(tasks ...Task) <-chan error {
 	return errc
 }
 
-// RunForever will execute the given task repeatedly on a set number of goroutines and stop if a task returns an error.
-func RunForever(concurrent int, task Task) error {
+// RunForever will execute the given task repeatedly on a set number of goroutines and return any errors. Context can be used to cancel execution of additional tasks.
+func RunForever(ctx context.Context, concurrent int, task Task) <-chan error {
 	errc := make(chan error)
 
 	// run tasks
+	var wg sync.WaitGroup
 	for c := 0; c < concurrent; c++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for {
-				errc <- task()
+				err := task()
+				if err != nil {
+					errc <- err
+				}
+
+				select {
+				case <-ctx.Done():
+					errc <- ctx.Err()
+					return
+				default:
+				}
 			}
 		}()
 	}
 
-	// check for errors
-	for {
-		err := <-errc
-		if err != nil {
-			return err
-		}
-	}
+	// make sure to close error channel
+	go func() {
+		wg.Wait()
+		close(errc)
+	}()
+
+	return errc
 }
 
 // RunLimited will execute the given task a set number of times on a set number of goroutines and stop if a task returns an error. Total times the task will be executed is equal to concurrent multiplied by count.

@@ -1,8 +1,8 @@
 package async
 
 import (
+	"context"
 	"errors"
-	"sync"
 	"testing"
 	"time"
 
@@ -111,46 +111,85 @@ func Test_RunLimited_Error(t *testing.T) {
 	assert.Equal(t, 8, count)
 }
 
-func Test_RunForever_Success(t *testing.T) {
+func Test_RunForever_Cancel(t *testing.T) {
 	// arrange
-	var wg sync.WaitGroup
-	wg.Add(12)
+	ctx, cancel := context.WithCancel(context.Background())
+
 	count := 0
 	task := func() error {
-		if count < 12 {
-			defer wg.Done()
-			count++
+		if count >= 10 {
+			cancel()
 		}
+
+		count++
 
 		return nil
 	}
 
 	// act
-	go RunForever(1, task)
-	wg.Wait()
+	errc := RunForever(ctx, 2, task)
+	err := Wait(errc)
 
 	// assert
-	assert.Equal(t, 12, count)
+	assert.Error(t, err)
+	assert.True(t, count >= 10)
+}
+
+func Test_RunForever_Timeout(t *testing.T) {
+	// arrange
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+	defer cancel()
+
+	task := func() error {
+		return nil
+	}
+
+	// act
+	errc := RunForever(ctx, 2, task)
+	err := Wait(errc)
+
+	// assert
+	assert.Error(t, err)
+}
+
+func Test_RunForever_Deadline(t *testing.T) {
+	// arrange
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Millisecond*100))
+	defer cancel()
+
+	task := func() error {
+		return nil
+	}
+
+	// act
+	errc := RunForever(ctx, 2, task)
+	err := Wait(errc)
+
+	// assert
+	assert.Error(t, err)
 }
 
 func Test_RunForever_Error(t *testing.T) {
 	// arrange
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	count := 0
 	task := func() error {
-		if count < 12 {
-			count++
-			if count == 12 {
-				return errors.New("error")
-			}
+		if count >= 10 {
+			return errors.New("task error")
 		}
+
+		count++
 
 		return nil
 	}
 
 	// act
-	err := RunForever(1, task)
+	errc := RunForever(ctx, 2, task)
+	err := Wait(errc)
 
 	// assert
 	assert.Error(t, err)
-	assert.Equal(t, 12, count)
+	assert.True(t, count >= 10)
 }
