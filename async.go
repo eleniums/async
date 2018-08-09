@@ -8,32 +8,26 @@ import (
 type Task func() error
 
 // Run will execute the given tasks concurrently and stop if a task returns an error.
-func Run(tasks ...Task) error {
+func Run(tasks ...Task) <-chan error {
 	errc := make(chan error)
 
 	// run tasks
 	var wg sync.WaitGroup
-	for t := range tasks {
+	for _, v := range tasks {
 		wg.Add(1)
-		go func(i int) {
+		go func(task Task) {
 			defer wg.Done()
-			errc <- tasks[i]()
-		}(t)
+			errc <- task()
+		}(v)
 	}
 
+	// make sure to close error channel
 	go func() {
 		wg.Wait()
 		close(errc)
 	}()
 
-	// check for errors
-	for err := range errc {
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return errc
 }
 
 // RunForever will execute the given task repeatedly on a set number of goroutines and stop if a task returns an error.
