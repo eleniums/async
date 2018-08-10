@@ -122,13 +122,13 @@ func Test_RunForever_Cancel(t *testing.T) {
 	// arrange
 	ctx, cancel := context.WithCancel(context.Background())
 
-	count := 0
+	var count int32
 	task := func() error {
+		atomic.AddInt32(&count, 1)
+
 		if count >= 10 {
 			cancel()
 		}
-
-		count++
 
 		return nil
 	}
@@ -180,13 +180,13 @@ func Test_RunForever_Error(t *testing.T) {
 	// arrange
 	ctx := context.Background()
 
-	count := 0
+	var count int32
 	task := func() error {
+		atomic.AddInt32(&count, 1)
+
 		if count >= 10 {
 			return errors.New("task error")
 		}
-
-		count++
 
 		return nil
 	}
