@@ -3,6 +3,7 @@ package async
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -75,40 +76,46 @@ func Test_Run_Error(t *testing.T) {
 
 func Test_RunLimited_Success(t *testing.T) {
 	// arrange
-	count := 0
+	ctx := context.Background()
+
+	var count int32
 	task := func() error {
-		count++
+		atomic.AddInt32(&count, 1)
 		return nil
 	}
 
 	// act
-	err := RunLimited(3, 4, task)
+	errc := RunLimited(ctx, 3, 4, task)
+	err := Wait(errc)
 
 	// assert
 	assert.NoError(t, err)
-	assert.Equal(t, 12, count)
+	assert.Equal(t, int32(12), count)
 }
 
 func Test_RunLimited_Error(t *testing.T) {
 	// arrange
-	count := 0
+	ctx := context.Background()
+
+	var count int32
 	task := func() error {
-		if count < 8 {
-			count++
-			if count == 8 {
-				return errors.New("error")
-			}
+		atomic.AddInt32(&count, 1)
+
+		if count >= 6 {
+			return errors.New("task error")
 		}
 
 		return nil
 	}
 
 	// act
-	err := RunLimited(3, 4, task)
+	errc := RunLimited(ctx, 3, 4, task)
+	err := Wait(errc)
 
 	// assert
 	assert.Error(t, err)
-	assert.Equal(t, 8, count)
+	assert.True(t, count >= 6)
+	assert.True(t, count < 12)
 }
 
 func Test_RunForever_Cancel(t *testing.T) {
@@ -171,8 +178,7 @@ func Test_RunForever_Deadline(t *testing.T) {
 
 func Test_RunForever_Error(t *testing.T) {
 	// arrange
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
 
 	count := 0
 	task := func() error {

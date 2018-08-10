@@ -69,28 +69,39 @@ func RunForever(ctx context.Context, concurrent int, task Task) <-chan error {
 	return errc
 }
 
-// RunLimited will execute the given task a set number of times on a set number of goroutines and stop if a task returns an error. Total times the task will be executed is equal to concurrent multiplied by count.
-func RunLimited(concurrent int, count int, task Task) error {
+// RunLimited will execute the given task a set number of times on a set number of goroutines and return any errors. Total times the task will be executed is equal to concurrent multiplied by count. Context can be used to cancel execution of additional tasks.
+func RunLimited(ctx context.Context, concurrent int, count int, task Task) <-chan error {
 	errc := make(chan error)
 
 	// run tasks
+	var wg sync.WaitGroup
 	for c := 0; c < concurrent; c++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for i := 0; i < count; i++ {
-				errc <- task()
+				err := task()
+				if err != nil {
+					errc <- err
+				}
+
+				select {
+				case <-ctx.Done():
+					errc <- ctx.Err()
+					return
+				default:
+				}
 			}
 		}()
 	}
 
-	// check for errors
-	for i := 0; i < concurrent*count; i++ {
-		err := <-errc
-		if err != nil {
-			return err
-		}
-	}
+	// make sure to close error channel
+	go func() {
+		wg.Wait()
+		close(errc)
+	}()
 
-	return nil
+	return errc
 }
 
 // Wait until channel is closed or error is received.
