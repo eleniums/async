@@ -93,6 +93,31 @@ func Test_RunLimited_Success(t *testing.T) {
 	assert.Equal(t, int32(12), count)
 }
 
+func Test_RunLimited_Cancel(t *testing.T) {
+	// arrange
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var count int32
+	task := func() error {
+		atomic.AddInt32(&count, 1)
+
+		if count >= 6 {
+			cancel()
+		}
+
+		return nil
+	}
+
+	// act
+	errc := RunLimited(ctx, 3, 4, task)
+	err := Wait(errc)
+
+	// assert
+	assert.Error(t, err)
+	assert.True(t, count >= 6)
+	assert.True(t, count < 12)
+}
+
 func Test_RunLimited_Error(t *testing.T) {
 	// arrange
 	ctx := context.Background()
