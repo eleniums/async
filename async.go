@@ -1,69 +1,112 @@
 package async
 
+import (
+	"context"
+	"sync"
+)
+
 // Task is a function that can be run concurrently.
 type Task func() error
 
-// Run will execute the given tasks concurrently and stop if a task returns an error.
-func Run(tasks ...Task) error {
-	concurrent := len(tasks)
-	errchan := make(chan error)
+// Run will execute the given tasks concurrently and return any errors.
+func Run(tasks ...Task) <-chan error {
+	errc := make(chan error)
 
 	// run tasks
-	for t := range tasks {
-		go func(i int) {
-			errchan <- tasks[i]()
-		}(t)
+	var wg sync.WaitGroup
+	for _, v := range tasks {
+		wg.Add(1)
+		go func(task Task) {
+			defer wg.Done()
+			err := task()
+			if err != nil {
+				errc <- err
+			}
+		}(v)
 	}
 
-	// check for errors
-	for i := 0; i < concurrent; i++ {
-		err := <-errchan
-		if err != nil {
-			return err
-		}
-	}
+	// make sure to close error channel
+	go func() {
+		wg.Wait()
+		close(errc)
+	}()
 
-	return nil
+	return errc
 }
 
-// RunForever will execute the given task repeatedly on a set number of goroutines and stop if a task returns an error.
-func RunForever(concurrent int, task Task) error {
-	errchan := make(chan error)
+// RunForever will execute the given task repeatedly on a set number of goroutines and return any errors. Context can be used to cancel execution of additional tasks.
+func RunForever(ctx context.Context, concurrent int, task Task) <-chan error {
+	errc := make(chan error)
 
 	// run tasks
+	var wg sync.WaitGroup
 	for c := 0; c < concurrent; c++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for {
-				errchan <- task()
+				err := task()
+				if err != nil {
+					errc <- err
+				}
+
+				select {
+				case <-ctx.Done():
+					errc <- ctx.Err()
+					return
+				default:
+				}
 			}
 		}()
 	}
 
-	// check for errors
-	for {
-		err := <-errchan
-		if err != nil {
-			return err
-		}
-	}
+	// make sure to close error channel
+	go func() {
+		wg.Wait()
+		close(errc)
+	}()
+
+	return errc
 }
 
-// RunLimited will execute the given task a set number of times on a set number of goroutines and stop if a task returns an error. Total times the task will be executed is equal to concurrent multiplied by count.
-func RunLimited(concurrent int, count int, task Task) error {
-	errchan := make(chan error)
+// RunLimited will execute the given task a set number of times on a set number of goroutines and return any errors. Total times the task will be executed is equal to concurrent multiplied by count. Context can be used to cancel execution of additional tasks.
+func RunLimited(ctx context.Context, concurrent int, count int, task Task) <-chan error {
+	errc := make(chan error)
 
 	// run tasks
+	var wg sync.WaitGroup
 	for c := 0; c < concurrent; c++ {
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			for i := 0; i < count; i++ {
-				errchan <- task()
+				err := task()
+				if err != nil {
+					errc <- err
+				}
+
+				select {
+				case <-ctx.Done():
+					errc <- ctx.Err()
+					return
+				default:
+				}
 			}
 		}()
 	}
 
-	// check for errors
-	for i := 0; i < concurrent*count; i++ {
-		err := <-errchan
+	// make sure to close error channel
+	go func() {
+		wg.Wait()
+		close(errc)
+	}()
+
+	return errc
+}
+
+// Wait until channel is closed or error is received.
+func Wait(errc <-chan error) error {
+	for err := range errc {
 		if err != nil {
 			return err
 		}

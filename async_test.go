@@ -1,149 +1,226 @@
 package async
 
 import (
+	"context"
 	"errors"
-	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	assert "github.com/stretchr/testify/require"
 )
 
-func Test_Run_Successful(t *testing.T) {
+func Test_Run_Success(t *testing.T) {
 	// arrange
-	count1 := 0
+	task1Completed := false
 	task1 := func() error {
-		count1++
+		defer func() { task1Completed = true }()
 		return nil
 	}
 
-	count2 := 0
+	task2Completed := false
 	task2 := func() error {
-		count2++
+		defer func() { task2Completed = true }()
 		return nil
 	}
 
-	count3 := 0
+	task3Completed := false
 	task3 := func() error {
-		count3++
+		defer func() { task3Completed = true }()
 		return nil
 	}
 
 	// act
-	err := Run(task1, task2, task3)
+	errc := Run(task1, task2, task3)
+	err := Wait(errc)
 
 	// assert
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count1)
-	assert.Equal(t, 1, count2)
-	assert.Equal(t, 1, count3)
+	assert.True(t, task1Completed)
+	assert.True(t, task2Completed)
+	assert.True(t, task3Completed)
 }
 
 func Test_Run_Error(t *testing.T) {
 	// arrange
-	count1 := 0
+	task1Completed := false
 	task1 := func() error {
-		count1++
+		defer func() { task1Completed = true }()
 		return nil
 	}
 
-	count2 := 0
+	task2Completed := false
 	task2 := func() error {
-		count2++
+		defer func() { task2Completed = true }()
+		time.Sleep(time.Millisecond * 200)
 		return nil
 	}
 
-	count3 := 0
+	task3Completed := false
 	task3 := func() error {
-		count3++
-		return errors.New("task3")
+		defer func() { task3Completed = true }()
+		time.Sleep(time.Millisecond * 100)
+		return errors.New("task3 error")
 	}
 
 	// act
-	err := Run(task1, task2, task3)
+	errc := Run(task1, task2, task3)
+	err := Wait(errc)
 
 	// assert
 	assert.Error(t, err)
-	assert.Equal(t, 1, count3)
+	assert.True(t, task1Completed)
+	assert.False(t, task2Completed)
+	assert.True(t, task3Completed)
 }
 
-func Test_RunLimited_Successful(t *testing.T) {
+func Test_RunLimited_Success(t *testing.T) {
 	// arrange
-	count := 0
+	ctx := context.Background()
+
+	var count int32
 	task := func() error {
-		count++
+		atomic.AddInt32(&count, 1)
 		return nil
 	}
 
 	// act
-	err := RunLimited(3, 4, task)
+	errc := RunLimited(ctx, 3, 4, task)
+	err := Wait(errc)
 
 	// assert
 	assert.NoError(t, err)
-	assert.Equal(t, 12, count)
+	assert.Equal(t, int32(12), count)
+}
+
+func Test_RunLimited_Cancel(t *testing.T) {
+	// arrange
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var count int32
+	task := func() error {
+		atomic.AddInt32(&count, 1)
+
+		if count >= 6 {
+			cancel()
+		}
+
+		return nil
+	}
+
+	// act
+	errc := RunLimited(ctx, 3, 4, task)
+	err := Wait(errc)
+
+	// assert
+	assert.Error(t, err)
+	assert.True(t, count >= 6)
+	assert.True(t, count < 12)
 }
 
 func Test_RunLimited_Error(t *testing.T) {
 	// arrange
-	count := 0
+	ctx := context.Background()
+
+	var count int32
 	task := func() error {
-		if count < 8 {
-			count++
-			if count == 8 {
-				return errors.New("error")
-			}
+		atomic.AddInt32(&count, 1)
+
+		if count >= 6 {
+			return errors.New("task error")
 		}
 
 		return nil
 	}
 
 	// act
-	err := RunLimited(3, 4, task)
+	errc := RunLimited(ctx, 3, 4, task)
+	err := Wait(errc)
 
 	// assert
 	assert.Error(t, err)
-	assert.Equal(t, 8, count)
+	assert.True(t, count >= 6)
+	assert.True(t, count < 12)
 }
 
-func Test_RunForever_Successful(t *testing.T) {
+func Test_RunForever_Cancel(t *testing.T) {
 	// arrange
-	var wg sync.WaitGroup
-	wg.Add(12)
-	count := 0
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var count int32
 	task := func() error {
-		if count < 12 {
-			defer wg.Done()
-			count++
+		atomic.AddInt32(&count, 1)
+
+		if count >= 10 {
+			cancel()
 		}
 
 		return nil
 	}
 
 	// act
-	go RunForever(1, task)
-	wg.Wait()
+	errc := RunForever(ctx, 2, task)
+	err := Wait(errc)
 
 	// assert
-	assert.Equal(t, 12, count)
+	assert.Error(t, err)
+	assert.True(t, count >= 10)
+}
+
+func Test_RunForever_Timeout(t *testing.T) {
+	// arrange
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+	defer cancel()
+
+	task := func() error {
+		return nil
+	}
+
+	// act
+	errc := RunForever(ctx, 2, task)
+	err := Wait(errc)
+
+	// assert
+	assert.Error(t, err)
+}
+
+func Test_RunForever_Deadline(t *testing.T) {
+	// arrange
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Millisecond*100))
+	defer cancel()
+
+	task := func() error {
+		return nil
+	}
+
+	// act
+	errc := RunForever(ctx, 2, task)
+	err := Wait(errc)
+
+	// assert
+	assert.Error(t, err)
 }
 
 func Test_RunForever_Error(t *testing.T) {
 	// arrange
-	count := 0
+	ctx := context.Background()
+
+	var count int32
 	task := func() error {
-		if count < 12 {
-			count++
-			if count == 12 {
-				return errors.New("error")
-			}
+		atomic.AddInt32(&count, 1)
+
+		if count >= 10 {
+			return errors.New("task error")
 		}
 
 		return nil
 	}
 
 	// act
-	err := RunForever(1, task)
+	errc := RunForever(ctx, 2, task)
+	err := Wait(errc)
 
 	// assert
 	assert.Error(t, err)
-	assert.Equal(t, 12, count)
+	assert.True(t, count >= 10)
 }
