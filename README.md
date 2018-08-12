@@ -27,7 +27,8 @@ bar := func() error {
 
 Run the tasks concurrently:
 ```go
-err := async.Run(foo, bar)
+errc := async.Run(foo, bar)
+err := async.Wait(errc)
 if err != nil {
     log.Fatalf("task returned an error: %v", err)
 }
