@@ -114,3 +114,14 @@ func Wait(errc <-chan error) error {
 
 	return nil
 }
+
+// HandleError sets a handler function to be called anytime an error is received on the given channel.
+func HandleError(errc <-chan error, handler func(error)) {
+	go func() {
+		for err := range errc {
+			if err != nil {
+				handler(err)
+			}
+		}
+	}()
+}
