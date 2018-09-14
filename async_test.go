@@ -3,6 +3,7 @@ package async
 import (
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -223,4 +224,37 @@ func Test_RunForever_Error(t *testing.T) {
 	// assert
 	assert.Error(t, err)
 	assert.True(t, count >= 10)
+}
+
+func Test_HandleError_Success(t *testing.T) {
+	// arrange
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	task1 := func() error {
+		return errors.New("task1 error")
+	}
+
+	task2 := func() error {
+		time.Sleep(time.Millisecond * 200)
+		return errors.New("task2 error")
+	}
+
+	task3 := func() error {
+		time.Sleep(time.Millisecond * 100)
+		return errors.New("task3 error")
+	}
+
+	// act
+	errc := Run(task1, task2, task3)
+
+	count := 0
+	HandleError(errc, func(err error) {
+		defer wg.Done()
+		count++
+	})
+	wg.Wait()
+
+	// assert
+	assert.Equal(t, 3, count)
 }
