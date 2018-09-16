@@ -40,7 +40,9 @@ func (p *TaskPool) Run(ctx context.Context, task Task) <-chan error {
 		defer close(errc)
 
 		err = task()
-		errc <- err
+		if err != nil {
+			errc <- err
+		}
 	}()
 
 	return errc
