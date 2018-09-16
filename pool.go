@@ -59,9 +59,7 @@ func (p *TaskPool) Wait() error {
 	}
 
 	// all tasks have completed; release the semaphore
-	for i := 0; i < p.max; i++ {
-		p.sem.Release(1)
-	}
+	p.sem.Release(int64(p.max))
 
 	return nil
 }
