@@ -15,3 +15,7 @@
 
 # Ignore vendor - use "dep ensure"
 vendor/
+
+# Benchmark files for pprof
+mem.prof
+cpu.prof
