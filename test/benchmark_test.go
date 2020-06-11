@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/eleniums/async"
+	"github.com/eleniums/async/v2"
 )
 
 func Benchmark_Run(b *testing.B) {
