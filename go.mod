@@ -1,4 +1,4 @@
-module github.com/eleniums/async/v2
+module github.com/eleniums/async
 
 go 1.11
 
