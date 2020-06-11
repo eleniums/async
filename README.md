@@ -7,7 +7,7 @@ A collection of methods for running functions concurrently.
 ## Installation
 
 ```
-go get -u github.com/eleniums/async
+go get -u github.com/eleniums/async/v2
 ```
 
 ## Example
