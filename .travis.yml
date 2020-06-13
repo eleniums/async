@@ -1,19 +1,12 @@
 language: go
 
 go:
-  - 1.11.x
   - 1.12.x
   - 1.13.x
+  - 1.14.x
   - master
 
 sudo: false
 
-before_install:
-  - gotools=golang.org/x/tools
-
-install:
-  - go get -u github.com/golang/dep/cmd/dep
-  - dep ensure -v
-
 script:
-  - go test -v -cover
+  - ./scripts/test_unit.sh
