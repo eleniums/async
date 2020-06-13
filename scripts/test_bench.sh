@@ -11,4 +11,6 @@ then
     export BENCH=.
 fi
 
+pushd v2
 go test -v -run=^$ -bench=$BENCH -benchtime=$BENCH_TIME -memprofile=mem.prof -cpuprofile=cpu.prof $@
+popd

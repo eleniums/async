@@ -19,4 +19,6 @@ if [ -z "$SAMPLE_INDEX" ]; then
     SAMPLE_INDEX=samples
 fi
 
+pushd v2
 go tool pprof -sample_index=$SAMPLE_INDEX ./cpu.prof
+popd
