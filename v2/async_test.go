@@ -258,3 +258,13 @@ func Test_HandleError_Success(t *testing.T) {
 	// assert
 	assert.Equal(t, 3, count)
 }
+
+func Benchmark_Run(b *testing.B) {
+	task := func() error {
+		return nil
+	}
+
+	for i := 0; i < b.N; i++ {
+		Run(task, task, task)
+	}
+}
