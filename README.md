@@ -1,6 +1,6 @@
 # async
 
-[![Build Status](https://travis-ci.org/eleniums/async.svg?branch=master)](https://travis-ci.org/eleniums/async) [![Go Report Card](https://goreportcard.com/badge/github.com/eleniums/async)](https://goreportcard.com/report/github.com/eleniums/async) [![GoDoc](https://godoc.org/github.com/eleniums/async?status.svg)](https://godoc.org/github.com/eleniums/async) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/eleniums/async/blob/master/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/eleniums/async/v2)](https://goreportcard.com/report/github.com/eleniums/async/v2) [![GoDoc](https://godoc.org/github.com/eleniums/async/v2?status.svg)](https://godoc.org/github.com/eleniums/async/v2) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/eleniums/async/blob/master/LICENSE)
 
 A collection of methods for running functions concurrently.
 
