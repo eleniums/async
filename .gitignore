@@ -19,3 +19,6 @@ vendor/
 # Benchmark files for pprof
 mem.prof
 cpu.prof
+
+# macOS
+.DS_Store
